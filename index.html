@@ -98,6 +98,7 @@
 
   /* 팝업 박스 옆(10px 간격)에 뜨는 이전/다음 프로젝트 화살표 */
   .modal-nav{
+    display:none;
     position:fixed;top:50%;transform:translateY(-50%);
     background:rgba(255,255,255,.9);border:0;width:46px;height:46px;border-radius:50%;
     font-size:1.6rem;line-height:1;cursor:pointer;z-index:1001;
@@ -257,13 +258,8 @@
       <!-- 상세페이지에 쓸 데이터. 화면엔 안 보이고 클릭했을 때만 JS가 읽어갑니다 -->
       <div class="detail" hidden>
         <div class="detail-images">
-          <img src="https://cdn.jsdelivr.net/gh/jlkjlkdljkdfljk/portfolio@main/images/portfolio-1.png" alt="포트폴리오 1">
+          <img src="https://cdn.jsdelivr.net/gh/jlkjlkdljkdfljk/portfolio@main/images/page-1.png" alt="포트폴리오 1">
         </div>
-        <table class="detail-specs">
-          <tr><td>작업 도구</td><td>-</td></tr>
-          <tr><td>사이즈</td><td>-</td></tr>
-          <tr><td>작업 연도</td><td>2026</td></tr>
-        </table>
       </div>
     </article>
 
@@ -451,6 +447,15 @@
   var gridEl = document.getElementById('grid');
   var modal = document.getElementById('modal');
   var carouselImg = document.getElementById('carouselImg');
+  var detailPrevEl = document.getElementById('detailPrev');
+  var detailNextEl = document.getElementById('detailNext');
+
+  // 아임웹 등에 위젯으로 삽입했을 때, 위젯을 감싸는 상위 요소에 transform 등이
+  // 걸려있으면 position:fixed가 화면 기준이 아니라 그 상위 요소 기준으로 동작해서
+  // 화살표가 스크롤에 같이 움직여버림. 그래서 이 버튼들을 body 바로 아래로
+  // 옮겨서 항상 화면(뷰포트) 기준으로 고정되도록 함.
+  document.body.appendChild(detailPrevEl);
+  document.body.appendChild(detailNextEl);
 
   var currentImages = [];
   var currentIndex = 0;
@@ -490,11 +495,12 @@
     });
   }
 
-  // 프로젝트가 1개뿐이면 다음/이전 화살표를 숨김 (넘어갈 다른 프로젝트가 없어서)
+  // 모달이 열려있고, 프로젝트가 2개 이상일 때만 화살표를 보여줌
+  // (버튼이 body 바로 아래로 옮겨져서 모달의 display:none에 더 이상 딸려가지 않으므로 직접 체크)
   function updateCarouselArrows(){
-    var show = allCards.length > 1;
-    document.getElementById('detailPrev').style.display = show ? '' : 'none';
-    document.getElementById('detailNext').style.display = show ? '' : 'none';
+    var show = modal.classList.contains('on') && allCards.length > 1;
+    detailPrevEl.style.display = show ? 'block' : 'none';
+    detailNextEl.style.display = show ? 'block' : 'none';
   }
 
   // 카드 안 .detail 블록의 내용을 읽어서 상세페이지(모달)에 채워넣기
@@ -508,8 +514,8 @@
     document.getElementById('modalTitle').textContent = card.querySelector('.card-title').textContent;
 
     showImage();
-    updateCarouselArrows();
     modal.classList.add('on');
+    updateCarouselArrows();
     updateAllDesignsActive(card);
   }
 
@@ -537,21 +543,28 @@
 
   document.querySelector('.modal-close').addEventListener('click', function(){
     modal.classList.remove('on');
+    updateCarouselArrows();
   });
   modal.addEventListener('click', function(e){
-    if(e.target === modal) modal.classList.remove('on');
+    if(e.target === modal){
+      modal.classList.remove('on');
+      updateCarouselArrows();
+    }
   });
-  document.getElementById('detailPrev').addEventListener('click', function(){
+  detailPrevEl.addEventListener('click', function(){
     goToAdjacentProject(-1);
   });
-  document.getElementById('detailNext').addEventListener('click', function(){
+  detailNextEl.addEventListener('click', function(){
     goToAdjacentProject(1);
   });
   document.addEventListener('keydown', function(e){
     if(!modal.classList.contains('on')) return;
-    if(e.key === 'Escape') modal.classList.remove('on');
-    if(e.key === 'ArrowLeft') document.getElementById('detailPrev').click();
-    if(e.key === 'ArrowRight') document.getElementById('detailNext').click();
+    if(e.key === 'Escape'){
+      modal.classList.remove('on');
+      updateCarouselArrows();
+    }
+    if(e.key === 'ArrowLeft') detailPrevEl.click();
+    if(e.key === 'ArrowRight') detailNextEl.click();
   });
 
   // ---------- 문의하기(견적문의) 모달 ----------
@@ -572,6 +585,7 @@
   // 상세페이지 하단 문의하기 버튼 → 상세페이지 닫고 문의 폼 열기
   document.getElementById('detailContactBtn').addEventListener('click', function(){
     modal.classList.remove('on');
+    updateCarouselArrows();
     contactModal.classList.add('on');
   });
   document.getElementById('contactClose').addEventListener('click', function(){
